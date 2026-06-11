@@ -1,13 +1,13 @@
-# Build Stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Build Stage - Updated to .NET 10.0
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY . .
 
 # Automatically find the .csproj file anywhere and build it
 RUN dotnet publish $(find . -name "*.csproj" | head -n 1) -c Release -o /app
 
-# Runtime Stage (with FFmpeg & Python for yt-dlp)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+# Runtime Stage - Updated to .NET 10.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app .
 
