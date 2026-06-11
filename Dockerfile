@@ -2,8 +2,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet restore
-RUN dotnet publish -c Release -o /app
+
+# Automatically find the .csproj file anywhere and build it
+RUN dotnet publish $(find . -name "*.csproj" | head -n 1) -c Release -o /app
 
 # Runtime Stage (with FFmpeg & Python for yt-dlp)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
@@ -21,5 +22,5 @@ RUN chmod a+rx /usr/local/bin/yt-dlp
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
-# Run the API (Note: If your project name is different, change the .dll name here)
+# Run the API
 ENTRYPOINT ["dotnet", "MediaDownloaderAPI.dll"]
