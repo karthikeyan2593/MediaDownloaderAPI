@@ -1,11 +1,12 @@
 ﻿using System.Diagnostics;
+using System.Text.Json; // இதை சேர்த்திருக்கேன்
 using MediaDownloaderAPI.Models;
 
 namespace MediaDownloaderAPI.Services
 {
     public class YtDlpService
     {
-        private readonly string _ffmpegPath = @"C:\ffmpeg\bin\ffmpeg.exe"; 
+        private readonly string _ffmpegPath = @"C:\ffmpeg\bin\ffmpeg.exe";
         private readonly string _downloadFolder;
 
         public string FfmpegPath => _ffmpegPath;
@@ -27,28 +28,57 @@ namespace MediaDownloaderAPI.Services
                 if (info.exitCode != 0)
                     return new DownloadResponse { Success = false, Error = info.output };
 
-                var json = System.Text.Json.JsonDocument.Parse(info.output);
+                var json = JsonDocument.Parse(info.output);
                 var root = json.RootElement;
 
                 var formats = new List<string>();
+                var formatsWithDetails = new List<object>(); // UI டேபிளுக்காக புது லிஸ்ட்!
+
                 if (root.TryGetProperty("formats", out var fmts))
                 {
-                    var heights = new HashSet<int>();
-                    foreach (var f in fmts.EnumerateArray())
+                    var addedHeights = new HashSet<int>();
+                    var standardHeights = new HashSet<int> { 144, 240, 360, 480, 720, 1080, 1440, 2160, 4320 };
+
+                    // ரிவர்ஸ்ல லூப் பண்ணாதான் நல்ல குவாலிட்டி ஃபைல்ஸ் கிடைக்கும்
+                    foreach (var f in fmts.EnumerateArray().Reverse())
                     {
-                        if (f.TryGetProperty("height", out var h) && h.ValueKind == System.Text.Json.JsonValueKind.Number)
+                        if (f.TryGetProperty("height", out var h) && h.ValueKind == JsonValueKind.Number)
                         {
-                            heights.Add(h.GetInt32());
+                            int height = h.GetInt32();
+                            if (height < 144) continue;
+
+                            int stdHeight = standardHeights.OrderBy(s => Math.Abs(s - height)).First();
+
+                            if (!addedHeights.Contains(stdHeight))
+                            {
+                                addedHeights.Add(stdHeight);
+                                formats.Add($"{stdHeight}p");
+
+                                // File Size எடுக்கும் பகுதி
+                                long bytes = 0;
+                                if (f.TryGetProperty("filesize", out var fs) && fs.ValueKind == JsonValueKind.Number)
+                                    bytes = fs.GetInt64();
+                                else if (f.TryGetProperty("filesize_approx", out var fsa) && fsa.ValueKind == JsonValueKind.Number)
+                                    bytes = fsa.GetInt64();
+
+                                string sizeStr = bytes > 0 ? (bytes / 1048576.0).ToString("0.00") + " MB" : "Unknown";
+                                string ext = f.TryGetProperty("ext", out var e) ? e.GetString() : "mp4";
+
+                                formatsWithDetails.Add(new
+                                {
+                                    quality = $"{stdHeight}p",
+                                    ext = ext,
+                                    fileSize = sizeStr,
+                                    url = f.TryGetProperty("url", out var u) ? u.GetString() : "#"
+                                });
+                            }
                         }
                     }
 
-                    var standardHeights = new HashSet<int> { 144, 240, 360, 480, 720, 1080, 1440, 2160, 4320 };
-                    formats = heights
-                        .Where(h => h >= 144)
-                        .Select(h => standardHeights.OrderBy(s => Math.Abs(s - h)).First())
-                        .Distinct()
-                        .OrderByDescending(h => h)
-                        .Select(h => $"{h}p")
+                    // குவாலிட்டி அடிப்படையில் வரிசைப்படுத்துதல் (1080p, 720p...)
+                    formats = formats.OrderByDescending(f => int.Parse(f.Replace("p", ""))).ToList();
+                    formatsWithDetails = formatsWithDetails
+                        .OrderByDescending(f => int.Parse(((string)((dynamic)f).quality).Replace("p", "")))
                         .ToList();
                 }
 
@@ -57,7 +87,8 @@ namespace MediaDownloaderAPI.Services
                     Success = true,
                     Title = root.GetProperty("title").GetString(),
                     Thumbnail = root.TryGetProperty("thumbnail", out var thumb) ? thumb.GetString() : null,
-                    AvailableQualities = formats
+                    AvailableQualities = formats,
+                    Formats = formatsWithDetails // இந்த புது டேட்டாவை Frontend-க்கு அனுப்புறோம்!
                 };
             }
             catch (Exception ex)

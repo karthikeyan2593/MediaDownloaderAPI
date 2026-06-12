@@ -15,6 +15,7 @@ public class DownloadResponse
     public string? Thumbnail { get; set; }
     public string? Error { get; set; }
 
-
     public List<string> AvailableQualities { get; set; } = new();
+
+    public List<object>? Formats { get; set; }
 }
