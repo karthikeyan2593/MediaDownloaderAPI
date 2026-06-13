@@ -116,13 +116,40 @@ namespace MediaDownloaderAPI.Services
         private async Task<(int exitCode, string output)> RunYtDlpAsync(string arguments)
         {
 
-            // 1. ப்ராஜெக்ட் ரன் ஆகும் மெயின் போல்டர் பாதையைக் கண்டறிகிறோம்
-            string rootPath = AppDomain.CurrentDomain.BaseDirectory;
-            // "youtube-cookies.txt" என்பதற்குப் பதிலாக "cookies.txt" என்று மாற்றவும்
-            string cookiesPath = Path.Combine(rootPath, "cookies.txt");
+            // 1. உன் குக்கீஸ் டேட்டாவை அப்படியே ஸ்ட்ரிங்கா கோட்டுக்குள்ளேயே கொண்டு வரோம்
+            string myCookiesContent = @"# Netscape HTTP Cookie File
+# https://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated file! Do not edit.
 
-            // 2. கமாண்டில் குக்கீஸ் ஃபைலின் முழுப் பாதையையும் இணைக்கிறோம்
-            string finalArguments = $"{arguments} --cookies \"{cookiesPath}\" --no-check-certificate --no-warnings";
+.instagram.com	TRUE	/	TRUE	1813824768	datr	Am0NarCbtrO3kM8EoV0yUebk
+.instagram.com	TRUE	/	TRUE	1810800768	ig_did	C7DDFEB1-2885-420B-94DD-F7D8EC1F97A2
+.instagram.com	TRUE	/	TRUE	1813824770	mid	ag1tAgALAAGhDcctA1vXQ2Upf8VV
+.instagram.com	TRUE	/	TRUE	1810801003	ig_nrcb	1
+.instagram.com	TRUE	/	TRUE	1815931110	csrftoken	OrqNykD3Gb1pJiBjSyg2CM5vJjN0sYox
+.instagram.com	TRUE	/	TRUE	1789147110	ds_user_id	3451809639
+.instagram.com	TRUE	/	TRUE	1815064568	ps_l	1
+.instagram.com	TRUE	/	TRUE	1815064568	ps_n	1
+.instagram.com	TRUE	/	TRUE	1781975901	dpr	1.25
+.instagram.com	TRUE	/	TRUE	1781975901	wd	1536x730
+.instagram.com	TRUE	/	TRUE	1812907108	sessionid	3451809639%3AWAxqvhVTTYtfF6%3A5%3AAYhfota3X01V0L6QarLueIUd1VBXaecEunbdmKuMTw
+.instagram.com	TRUE	/	TRUE	0	rur	""EAG\0543451809639\0541812907109:01ffe9d7c9f1abf78a1f0f787c2dd1e1557976f3f8864237c68f6275f5eb88baa8cf1ffc""
+
+.youtube.com	TRUE	/	TRUE	1791797622	__Secure-BUCKET	CAw
+.youtube.com	TRUE	/	TRUE	1815924966	PREF	f4=4000000&tz=Asia.Calcutta&f7=100&f6=40000000
+.youtube.com	TRUE	/	TRUE	1812728082	__Secure-1PSIDTS	sidts-CjQByojQU0HCLzlgpUoCJC9T5IxjHbFxCf4wBfqjhjmhjwSHP8ex-mz7tXETg-aA0zOXo1rOEAA
+.youtube.com	samples	TRUE	/	TRUE	1812728082	__Secure-3PSIDTS	sidts-CjQByojQU0HCLzlgpUoCJC9T5IxjHbFxCf4wBfqjhjmhjwSHP8ex-mz7tXETg-aA0zOXo1rOEAA
+.youtube.com	TRUE	/	TRUE	1796916927	VISITOR_INFO1_LIVE	McWuFHoNNUQ
+.youtube.com	TRUE	/	TRUE	1796916927	VISITOR_PRIVACY_METADATA	CgJJThIEGgAgPw%3D%3D
+.youtube.com	TRUE	/	TRUE	1796916924	__Secure-YNID	19.YT=lOGJY-imPO2kWZgzPhGn0bQgY3SHKS3ak5fZ_TECWuuY79khVfOo_2WMrVZbtUZ6syO9Kt4VuEwbueeBdYhgwInhlL9QwdRZ08SzaxpFjPA_fH0UB1RLdtMyqhPz9dGQy7fHFeMkSH6lVv5PNNNO2dFIFMNcL8BCEHiG4wenog1JZQb9WTEB3wRXeMyZ5bIlA_pz6SofsIxzTYf-C-GF09wcwdeuBcYeMBjO7yV2yTM9JKIqfbgmdct0U3OJnQVgYemZXL3AloEM6pA2s4_0ysLS0is6v0EWU5M1z2wr4DN74jVwNIHwXiRT_iPYQKpb-dDGVdvp-rbpe3iIRhnR8Q
+.youtube.com	TRUE	/	TRUE	0	YSC	5mH2Uy3MXPE
+.youtube.com	TRUE	/	TRUE	1796916924	__Secure-ROLLOUT_TOKEN	CLTCt4SPpaes2gEQjYbE0sbvkwMY0tP0u8WElQM%3D";
+
+            // 2. ரன்டைமில் தற்காலிகமாக ஒரு குக்கீஸ் ஃபைலை சர்வருக்குள் உருவாக்குகிறோம்
+            string tempCookiesPath = Path.Combine(Path.GetTempPath(), "runtime-cookies.txt");
+            File.WriteAllText(tempCookiesPath, myCookiesContent);
+
+            // 3. இறுதி கமாண்டுகளைச் சேர்க்கிறோம்
+            string finalArguments = $"{arguments} --cookies \"{tempCookiesPath}\" --no-check-certificate --no-warnings";
 
             var process = new Process
             {
@@ -136,6 +163,7 @@ namespace MediaDownloaderAPI.Services
                     CreateNoWindow = true
                 }
             };
+
 
             process.Start();
             string output = await process.StandardOutput.ReadToEndAsync();
