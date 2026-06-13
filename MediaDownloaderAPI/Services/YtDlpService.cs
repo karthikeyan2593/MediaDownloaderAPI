@@ -118,7 +118,8 @@ namespace MediaDownloaderAPI.Services
 
             // 1. ப்ராஜெக்ட் ரன் ஆகும் மெயின் போல்டர் பாதையைக் கண்டறிகிறோம்
             string rootPath = AppDomain.CurrentDomain.BaseDirectory;
-            string cookiesPath = Path.Combine(rootPath, "youtube-cookies.txt");
+            // "youtube-cookies.txt" என்பதற்குப் பதிலாக "cookies.txt" என்று மாற்றவும்
+            string cookiesPath = Path.Combine(rootPath, "cookies.txt");
 
             // 2. கமாண்டில் குக்கீஸ் ஃபைலின் முழுப் பாதையையும் இணைக்கிறோம்
             string finalArguments = $"{arguments} --cookies \"{cookiesPath}\" --no-check-certificate --no-warnings";
