@@ -115,12 +115,15 @@ namespace MediaDownloaderAPI.Services
 
         private async Task<(int exitCode, string output)> RunYtDlpAsync(string arguments)
         {
+            // 1. பழைய arguments வேரியபிளுடன் குக்கீஸ் மற்றும் SSL செட்டிங்ஸை இணைக்கிறோம்
+            string finalArguments = $"{arguments} --cookies \"youtube-cookies.txt\" --no-check-certificate --no-warnings";
+
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "yt-dlp",
-                    Arguments = arguments,
+                    Arguments = finalArguments, // இங்க புது finalArguments-ஐக் கொடுக்கிறோம்
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
