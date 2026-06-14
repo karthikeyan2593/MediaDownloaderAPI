@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using MediaDownloaderAPI.Models;
+﻿using MediaDownloaderAPI.Models;
 using MediaDownloaderAPI.Services;
+using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace MediaDownloaderAPI.Controllers
 {
@@ -16,21 +17,27 @@ namespace MediaDownloaderAPI.Controllers
             _ytDlp = ytDlp;
         }
 
-        [HttpPost("info")]
-        public async Task<IActionResult> GetInfo([FromBody] DownloadRequest request)
+        [HttpPost("api/download/info")]
+        public async Task<IActionResult> GetInfo([FromBody] DownloadRequest req)
         {
-            if (string.IsNullOrEmpty(request.Url))
-                return BadRequest("URL required");
+            if (string.IsNullOrEmpty(req.Url)) return BadRequest("URL missing");
 
-            if (!IsSupported(request.Url))
-                return BadRequest("Only Instagram, YouTube, Facebook, TikTok supported");
+            using var client = new HttpClient();
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://social-download-all-in-one.p.rapidapi.com/v1/social/autolink");
 
-            var result = await _ytDlp.GetVideoInfoAsync(request.Url);
-            if (!result.Success)
-                return BadRequest(result);
+            // Header-களை சர்வர் பக்கத்தில் சேர்
+            request.Headers.Add("x-rapidapi-key", "634d66a1fbmsh348e46cbbe59b16p1531e3jsnea49dffe631");
+            request.Headers.Add("x-rapidapi-host", "social-download-all-in-one.p.rapidapi.com");
 
-            return Ok(result);
+            var content = new StringContent(JsonSerializer.Serialize(new { url = req.Url }), System.Text.Encoding.UTF8, "application/json");
+            request.Content = content;
+
+            var response = await client.SendAsync(request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            return Content(responseBody, "application/json");
         }
+
 
         [HttpGet("progress")]
         public async Task DownloadWithProgress([FromQuery] string url, [FromQuery] string quality, [FromQuery] string title)
@@ -132,6 +139,8 @@ namespace MediaDownloaderAPI.Controllers
 
             return File(stream, "video/mp4", Uri.UnescapeDataString(filename));
         }
+
+
 
         [HttpGet("mp3")]
         public async Task<IActionResult> DownloadMp3([FromQuery] string url, [FromQuery] string title)
