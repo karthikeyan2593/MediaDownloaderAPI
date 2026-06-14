@@ -139,12 +139,22 @@ namespace MediaDownloaderAPI.Controllers
             if (string.IsNullOrEmpty(url))
                 return BadRequest("URL required");
 
-            var filePath = await _ytDlp.DownloadMp3Async(url, title);
-            if (filePath == null || !System.IO.File.Exists(filePath))
-                return BadRequest("MP3 conversion failed");
+            // இங்க Tuple-ஐ பிரிச்சுக்கிறோம் (exitCode, output)
+            var (exitCode, output) = await _ytDlp.DownloadMp3Async(url, title);
+
+            // எரர் வந்தா அதை காட்டுறோம்
+            if (exitCode != 0)
+                return BadRequest($"MP3 conversion failed: {output}");
+
+            // இங்க 'output' தான் அந்த கோப்புப் பாதை (filePath)
+            var filePath = output.Trim();
+
+            if (!System.IO.File.Exists(filePath))
+                return BadRequest("MP3 file not found");
 
             var fileName = Path.GetFileName(filePath);
             var stream = System.IO.File.OpenRead(filePath);
+
             Response.OnCompleted(async () =>
             {
                 stream.Close();
