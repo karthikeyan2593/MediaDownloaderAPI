@@ -105,14 +105,18 @@ namespace MediaDownloaderAPI.Services
         // உன்னுடைய Controller மற்றும் GetVideoInfoAsync இரண்டுக்கும் செட் ஆகுற மாதிரி Tuple ரிட்டன் டைப் மாற்றப்பட்டுள்ளது!
         public async Task<(int exitCode, string output)> RunYtDlpAsync(string arguments)
         {
-            // 1. Render Environment Variable-ல் இருந்து குக்கீஸை எடுக்கிறோம்
-            string cookieData = Environment.GetEnvironmentVariable("COOKIES_CONTENT");
+            // 1. உன் குக்கீஸை ஒரு டெக்ஸ்ட் ஃபைலாக சர்வரிலேயே உருவாக்குகிறோம்
+            string tempCookiesPath = Path.Combine(Path.GetTempPath(), "cookies.txt");
 
-            // 2. தற்காலிகமாக ஒரு ஃபைலை சர்வரில் உருவாக்குகிறோம்
-            string tempCookiesPath = Path.Combine(Path.GetTempPath(), "runtime-cookies.txt");
+            // இங்கே அந்த குக்கீஸ் டேட்டாவை அப்படியே ஒரே வரியாக (கோட்டின் நடுவில் என்டர் தட்டாமல்) பேஸ்ட் செய்
+            string cookieData = @"# Netscape HTTP Cookie File
+.youtube.com	TRUE	/	TRUE	1791797622	__Secure-BUCKET	CAw
+.youtube.com	TRUE	/	TRUE	1815924966	PREF	f4=4000000&tz=Asia.Calcutta&f7=100&f6=40000000
+.youtube.com	TRUE	/	TRUE	1796916927	VISITOR_INFO1_LIVE	McWuFHoNNUQ"; // உன்னோட முழு குக்கீஸ் டேட்டாவையும் இங்க பேஸ்ட் பண்ணு
+
             await File.WriteAllTextAsync(tempCookiesPath, cookieData);
 
-            // 3. கமாண்டில் இணைக்கிறோம்
+            // 2. கமாண்டில் இந்த ஃபைல் பாத்-ஐ கொடுக்கிறோம்
             string finalArguments = $"{arguments} --cookies \"{tempCookiesPath}\" --no-check-certificate --no-warnings";
 
             var process = new Process
