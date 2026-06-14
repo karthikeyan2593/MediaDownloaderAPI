@@ -15,6 +15,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<YtDlpService>();
 
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
