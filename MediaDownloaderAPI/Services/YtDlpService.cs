@@ -105,19 +105,13 @@ namespace MediaDownloaderAPI.Services
         // உன்னுடைய Controller மற்றும் GetVideoInfoAsync இரண்டுக்கும் செட் ஆகுற மாதிரி Tuple ரிட்டன் டைப் மாற்றப்பட்டுள்ளது!
         public async Task<(int exitCode, string output)> RunYtDlpAsync(string arguments)
         {
-            // 1. குக்கீஸ் ஃபைலை உருவாக்கவும்
-            string tempCookiesPath = Path.Combine(Path.GetTempPath(), "cookies.txt");
+            // குக்கீஸ் ஃபைல் தேவையில்லை, அதைத் தூக்கிட்டோம்!
 
-            // உன் முழு குக்கீஸ் டேட்டாவை இங்கே பேஸ்ட் செய்யவும்
-            string cookieData = @"# Netscape HTTP Cookie File
-.youtube.com	TRUE	/	TRUE	1791797622	__Secure-BUCKET	CAw
-.youtube.com	TRUE	/	TRUE	1815924966	PREF	f4=4000000&tz=Asia.Calcutta&f7=100&f6=40000000
-.youtube.com	TRUE	/	TRUE	1796916927	VISITOR_INFO1_LIVE	McWuFHoNNUQ";
+            // User-Agent-ஐ ஒரு உண்மையான பிரவுசர் மாதிரி செட் பண்றோம் (இதுதான் பாட் பிளாக்கைத் தடுக்கும்)
+            string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-            await File.WriteAllTextAsync(tempCookiesPath, cookieData);
-
-            // 2. கவனிக்க: ப்ராக்ஸியை நீக்கிவிட்டு குக்கீஸை மட்டும் பயன்படுத்துகிறோம்
-            string finalArguments = $"{arguments} --cookies \"{tempCookiesPath}\" --no-check-certificate --no-warnings";
+            // கமாண்ட்: குக்கீஸ் இல்லை, ஆனால் User-Agent மற்றும் Proxy-க்கு பதில் --force-ipv4 பயன்படுத்துகிறோம்
+            string finalArguments = $"{arguments} --user-agent \"{userAgent}\" --force-ipv4 --no-check-certificate --no-warnings";
 
             var process = new Process
             {
@@ -137,11 +131,7 @@ namespace MediaDownloaderAPI.Services
             string error = await process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
 
-            // 3. ExitCode 0 ஆக இருந்தால் மட்டுமே அவுட்புட்டைத் தருகிறோம்
-            if (process.ExitCode == 0)
-                return (0, output);
-            else
-                return (process.ExitCode, error);
+            return (process.ExitCode, string.IsNullOrEmpty(output) ? error : output);
         }
     }
 
